@@ -8,31 +8,28 @@ import java.math.BigInteger
   */
 
 class File(name: String, conf: Conf) {
-  def initHash: Unit = {
-    val t = new FileInputStream(name)
-    //val size = (new java.io.File(name)).length()
-    //var count = 0L
-    val buff = new Array[Byte](conf.bufSize)
-    while (t.read(buff) != -1) {
-      println(checkSumToString(getChecksum(buff)))
-    }
-  }
+  type checksum = Array[Byte]
+  type buff = Array[Byte]
 
-  def getHash = {
-    val stream = new FileInputStream(name)
-    val buff = new Array[Byte](conf.bufSize)
-    whi
-  }
-
-
-  def checkSumToString(bytes: Array[Byte]) = new BigInteger(1, bytes).toString()
+  def initHash: Unit =
+    getHash.parts.foreach(p => println(checkSumToString(p)))
 
   def getChecksum(buff: Array[Byte]) = {
     val m = java.security.MessageDigest.getInstance(conf.digest)
     m.update(buff, 0, buff.length)
     m.digest()
   }
+
+  def getHashArray(stream: FileInputStream, buff: buff, acc: List[checksum]): List[checksum] = {
+    if (stream.read(buff) != -1)
+      getHashArray(stream, buff, getChecksum(buff) :: acc)
+    else
+      acc
+  }
+
+  def getHash = FileHash(new java.io.File(name).length(), getHashArray(new FileInputStream(name), new buff(conf.bufSize), Nil))
+
+  def checkSumToString(bytes: checksum) = new BigInteger(1, bytes).toString()
 }
 
-
-class Hash(filename: String, length: Long, parts: Array[Array[Byte]])
+case class FileHash(length: Long, parts: List[Array[Byte]])
