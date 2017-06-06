@@ -23,7 +23,7 @@ object HashUtil {
     val length = buffer.getLong(0)
     val partsCount = (fileSize.toInt - 8) / Conf().bytesPerDigest
     val parts = for (i <- 1 to partsCount) yield buffer.array.slice(partOffset(i), partOffset(i + 1))
-    FileHash(length, parts.toList)
+    //FileHash(length, parts.toList)
   }
 
   def toByteArray(hash: FileHash) = {
@@ -33,7 +33,7 @@ object HashUtil {
 
     var offset = 8
     for (part <- hash.parts) {
-      bb.put(part, offset, Conf().bytesPerDigest)
+      //bb.put(part, offset, Conf().bytesPerDigest)
       offset += Conf().bytesPerDigest
     }
     bb.array()

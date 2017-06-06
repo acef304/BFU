@@ -2,6 +2,7 @@ package org.acef304.BFU.model
 
 import java.io.FileInputStream
 import java.math.BigInteger
+import java.security.MessageDigest
 
 /**
   * Created by acef304 on 27/11/2016.
@@ -10,26 +11,38 @@ import java.math.BigInteger
 class File(name: String, conf: Conf) {
   type checksum = Array[Byte]
   type buff = Array[Byte]
+  val fileLength = new java.io.File(name).length()
 
-  def initHash: Unit =
-    getHash.parts.foreach(p => println(checkSumToString(p)))
+  private def defaultMessageDigest = java.security.MessageDigest.getInstance(conf.digest)
 
-  def getChecksum(buff: Array[Byte]) = {
-    val m = java.security.MessageDigest.getInstance(conf.digest)
-    m.update(buff, 0, buff.length)
-    m.digest()
+  private def updateDigest(buff: Array[Byte], length: Int, messageDigest: MessageDigest = defaultMessageDigest) = {
+    messageDigest.update(buff, 0, length)
+    messageDigest
   }
 
-  def getHashArray(stream: FileInputStream, buff: buff, acc: List[checksum]): List[checksum] = {
-    if (stream.read(buff) != -1)
-      getHashArray(stream, buff, getChecksum(buff) :: acc)
+  private def getHashArray(stream: FileInputStream, buff: buff, acc: List[checksum], progress: Long = 0,
+                   d: MessageDigest = defaultMessageDigest): (checksum, List[checksum]) = {
+    val readedBytes = stream.read(buff)
+    print(s"\r$progress \\ $fileLength (${progress*100/fileLength}%)")
+    if (readedBytes != -1)
+      getHashArray(stream, buff,
+        updateDigest(buff, readedBytes).digest() :: acc,
+        progress + readedBytes,
+        updateDigest(buff, readedBytes, d))
     else
-      acc
+      (d.digest, acc)
   }
-
-  def getHash = FileHash(new java.io.File(name).length(), getHashArray(new FileInputStream(name), new buff(conf.bufSize), Nil))
 
   def checkSumToString(bytes: checksum) = new BigInteger(1, bytes).toString()
+
+  def getFileHash = {
+    val fileHash = getHashArray(new FileInputStream(name), new buff(conf.bufSize), Nil)
+    FileHash(fileLength, Hex.valueOf(fileHash._1), fileHash._2 map Hex.valueOf)
+  }
 }
 
-case class FileHash(length: Long, parts: List[Array[Byte]])
+object Hex {
+  def valueOf(buf: Array[Byte]): String = buf.map("%02X" format _).mkString
+}
+
+case class FileHash(length: Long, total: String, parts: List[String])
