@@ -4,10 +4,7 @@ import java.io.FileInputStream
 import java.math.BigInteger
 import java.security.MessageDigest
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
-
+import org.acef304.BFU.util.ParlUtil
 
 /**
   * Created by acef304 on 27/11/2016.
@@ -30,12 +27,10 @@ class File(name: String, conf: Conf) {
     val readedBytes = stream.read(buff)
     print(s"\r$progress \\ $fileLength (${ progress * 100 / fileLength }%)")
     if (readedBytes != -1) {
-      val block = Future { updateDigest(buff, readedBytes).digest() }
-      val message = Future { updateDigest(buff, readedBytes,d) }
-      val composition = Await.result(
-        for { blockDigest <-block; fileDigest <- message } yield (blockDigest, fileDigest),
-        5000 millis)
-      getHashArray(stream, buff, composition._1 :: acc, progress + readedBytes, composition._2)
+      val hashComposition = ParlUtil.computeTwo(
+        () => updateDigest(buff, readedBytes).digest(),
+        () => updateDigest(buff, readedBytes,d))
+      getHashArray(stream, buff, hashComposition._1 :: acc, progress + readedBytes, hashComposition._2)
     }
     else
       (d.digest, acc)

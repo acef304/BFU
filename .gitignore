@@ -1,3 +1,5 @@
 .idea/*
 target/*
 project/*
+test_data/*
+.java-version
